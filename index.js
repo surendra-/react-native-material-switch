@@ -1,85 +1,37 @@
-var React = require('react');
-var ReactNative = require('react-native');
-var PropTypes = require('prop-types');
-var createReactClass = require('create-react-class');
-
-var {
+import React, { Component } from 'react';
+import {
   PanResponder,
   View,
   TouchableHighlight,
   Animated,
   ViewPropTypes,
-} = ReactNative;
+} from 'react-native';
+import PropTypes from 'prop-types';
 
-var MaterialSwitch = createReactClass({
-  padding: 8,
-
-  propTypes: {
-    active: PropTypes.bool,
-    style: ViewPropTypes.style,
-    inactiveButtonColor: PropTypes.string,
-    inactiveButtonPressedColor: PropTypes.string,
-    activeButtonColor: PropTypes.string,
-    activeButtonPressedColor: PropTypes.string,
-    buttonShadow: ViewPropTypes.style,
-    activeBackgroundColor: PropTypes.string,
-    inactiveBackgroundColor: PropTypes.string,
-    buttonRadius: PropTypes.number,
-    switchWidth: PropTypes.number,
-    switchHeight: PropTypes.number,
-    buttonContent: PropTypes.element,
-    enableSlide: PropTypes.bool,
-    enableSlideDragging: PropTypes.bool,
-    switchAnimationTime: PropTypes.number,
-    onActivate: PropTypes.func,
-    onDeactivate: PropTypes.func,
-    onChangeState: PropTypes.func,
-  },
-
-  getDefaultProps() {
-    return {
-      active: false,
-      style: {},
-      inactiveButtonColor: '#2196F3',
-      inactiveButtonPressedColor: '#42A5F5',
-      activeButtonColor: '#FAFAFA',
-      activeButtonPressedColor: '#F5F5F5',
-      buttonShadow: {
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOpacity: 0.5,
-        shadowRadius: 1,
-        shadowOffset: { height: 1, width: 0 },
-      },
-      activeBackgroundColor: 'rgba(255,255,255,.5)',
-      inactiveBackgroundColor: 'rgba(0,0,0,.5)',
-      buttonRadius: 15,
-      switchWidth: 40,
-      switchHeight: 20,
-      buttonContent: null,
-      buttonOffset: 0,
-      enableSlide: true,
-      enableSlideDragging: true,
-      switchAnimationTime: 200,
-      onActivate: function() {},
-      onDeactivate: function() {},
-      onChangeState: function() {},
-    };
-  },
-
-  getInitialState() {
-    var w = (this.props.switchWidth - Math.min(this.props.switchHeight, this.props.buttonRadius*2) - this.props.buttonOffset);
-
-    return {
+/* eslint-disable */
+export default class Switch extends Component {
+  constructor(props) {
+    super(props);
+    const {
+      switchWidth,
+      switchHeight,
+      buttonRadius,
+      buttonOffset,
+      active,
+    } = this.props;
+    const w = (switchWidth - Math.min(switchHeight, buttonRadius * 2) - buttonOffset);
+    this.state = {
       width: w,
-      state: this.props.active,
-      position: new Animated.Value(this.props.active? w : this.props.buttonOffset),
+      state: active,
+      position: new Animated.Value(active ? w : buttonOffset),
     };
-  },
+    this.padding = 8;
+    this.start = {};
+  }
 
-  start: {},
-
-  componentWillMount: function() {
+  componentWillMount() {
+    const { position, width } = this.state;
+    const { enableSlide } = this.props;
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponder: (evt, gestureState) => true,
       onStartShouldSetPanResponderCapture: (evt, gestureState) => true,
@@ -87,196 +39,292 @@ var MaterialSwitch = createReactClass({
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => true,
 
       onPanResponderGrant: (evt, gestureState) => {
-        if (!this.props.enableSlide) return;
+        if (!enableSlide) return;
 
-        this.setState({pressed: true});
+        this.setState({ pressed: true });
         this.start.x0 = gestureState.x0;
-        this.start.pos = this.state.position._value;
+        this.start.pos = position._value;
         this.start.moved = false;
         this.start.state = this.state.state;
         this.start.stateChanged = false;
       },
       onPanResponderMove: (evt, gestureState) => {
-        if (!this.props.enableSlide) return;
+        if (!enableSlide) return;
 
         this.start.moved = true;
         if (this.start.pos == 0) {
-          if (gestureState.dx <= this.state.width && gestureState.dx >= 0) {
-            this.state.position.setValue(gestureState.dx);
+          if (gestureState.dx <= width && gestureState.dx >= 0) {
+            position.setValue(gestureState.dx);
           }
-          if (gestureState.dx > this.state.width) {
-            this.state.position.setValue(this.state.width);
+          if (gestureState.dx > width) {
+            position.setValue(width);
           }
           if (gestureState.dx < 0) {
-            this.state.position.setValue(0);
+            position.setValue(0);
           }
         }
-        if (this.start.pos == this.state.width) {
-          if (gestureState.dx >= -this.state.width && gestureState.dx <= 0) {
-            this.state.position.setValue(this.state.width+gestureState.dx);
+        if (this.start.pos === width) {
+          if (gestureState.dx >= -width && gestureState.dx <= 0) {
+            position.setValue(width + gestureState.dx);
           }
           if (gestureState.dx > 0) {
-            this.state.position.setValue(this.state.width);
+            position.setValue(width);
           }
-          if (gestureState.dx < -this.state.width) {
-            this.state.position.setValue(0);
+          if (gestureState.dx < -width) {
+            position.setValue(0);
           }
         }
-        var currentPos = this.state.position._value;
+        const currentPos = position._value;
         this.onSwipe(currentPos, this.start.pos,
           () => {
             if (!this.start.state) this.start.stateChanged = true;
-            this.setState({state: true})
+            this.setState({ state: true });
           },
-          ()=>{
+          () => {
             if (this.start.state) this.start.stateChanged = true;
-            this.setState({state: false})
+            this.setState({ state: false });
           });
       },
       onPanResponderTerminationRequest: (evt, gestureState) => true,
       onPanResponderRelease: (evt, gestureState) => {
-        this.setState({pressed: false});
-        var currentPos = this.state.position._value;
-        if (!this.start.moved || (Math.abs(currentPos-this.start.pos)<5 && !this.start.stateChanged)) {
+        this.setState({ pressed: false });
+        const currentPos = position._value;
+        if (!this.start.moved || (Math.abs(currentPos - this.start.pos) < 5 && !this.start.stateChanged)) {
           this.toggle();
           return;
         }
         this.onSwipe(currentPos, this.start.pos, this.activate, this.deactivate);
       },
       onPanResponderTerminate: (evt, gestureState) => {
-        var currentPos = this.state.position._value;
-        this.setState({pressed: false});
+        const currentPos = position._value;
+        this.setState({ pressed: false });
         this.onSwipe(currentPos, this.start.pos, this.activate, this.deactivate);
       },
       onShouldBlockNativeResponder: (evt, gestureState) => true,
     });
-  },
+  }
 
-  componentWillReceiveProps: function(nextProps){
-    if(this.state.state !== nextProps.active){
-      nextProps.active ? this.activate() : this.deactivate()
+    componentWillReceiveProps(nextProps) {
+      const { active } = nextProps
+      const { position, width } = this.state;
+      const { switchAnimationTime, buttonOffset } = this.props;
+      this.setState({
+        state : active
+      })
+      Animated.timing(
+        position,
+        {
+          toValue: active ? width : buttonOffset,
+          duration: switchAnimationTime,
+          useNativeDriver: true,
+        },
+      ).start();
     }
-  },
 
-  onSwipe(currentPosition, startingPosition, onChange, onTerminate) {
-    if (currentPosition-startingPosition >= 0) {
-      if (currentPosition-startingPosition > this.state.width/2 || startingPosition == this.state.width) {
+  onSwipe = (currentPosition, startingPosition, onChange, onTerminate) => {
+    const { width } = this.state;
+    if (currentPosition - startingPosition >= 0) {
+      if (currentPosition - startingPosition > width / 2 || startingPosition === width) {
         onChange();
       } else {
         onTerminate();
       }
+    } else if (currentPosition - startingPosition < -width / 2) {
+      onTerminate();
     } else {
-      if (currentPosition-startingPosition < -this.state.width/2) {
-        onTerminate();
-      } else {
-        onChange();
-      }
+      onChange();
     }
-  },
+  }
 
-  activate() {
+  activate = () => {
+    const { position, width } = this.state;
+    const { switchAnimationTime } = this.props;
     Animated.timing(
-      this.state.position,
+      position,
       {
-        toValue: this.state.width,
-        duration: this.props.switchAnimationTime,
+        toValue: width,
+        duration: switchAnimationTime,
         useNativeDriver: true,
-      }
+      },
     ).start();
     this.changeState(true);
-  },
+  }
 
-  deactivate() {
+  deactivate = () => {
+    const { position } = this.state;
+    const { buttonOffset, switchAnimationTime } = this.props;
     Animated.timing(
-      this.state.position,
+      position,
       {
-        toValue: this.props.buttonOffset,
-        duration: this.props.switchAnimationTime,
+        toValue: buttonOffset,
+        duration: switchAnimationTime,
         useNativeDriver: true,
-      }
+      },
     ).start();
     this.changeState(false);
-  },
+  }
 
-  changeState(state) {
-    var callHandlers = this.start.state != state;
+  changeState = (state) => {
+    const { switchAnimationTime } = this.props;
+    const callHandlers = this.start.state !== state;
     setTimeout(() => {
-      this.setState({state : state});
+      this.setState({ state });
       if (callHandlers) {
         this.callback();
       }
-    }, this.props.switchAnimationTime/2);
-  },
+    }, switchAnimationTime / 2);
+  }
 
-  callback() {
-    var state = this.state.state;
+  callback = () => {
+    const { onActivate, onDeactivate, onChangeState } = this.props;
+    const { state } = this.state;
     if (state) {
-      this.props.onActivate();
+      onActivate();
     } else {
-      this.props.onDeactivate();
+      onDeactivate();
     }
-    this.props.onChangeState(state);
-  },
+    onChangeState(state);
+  }
 
-  toggle() {
-    if (!this.props.enableSlide) return;
+  toggle = () => {
+    const { enableSlide } = this.props;
+    const { state } = this.state;
+    if (!enableSlide) return;
 
-    if (this.state.state) {
+    if (state) {
       this.deactivate();
     } else {
       this.activate();
     }
-  },
+  }
 
   render() {
-    var doublePadding = this.padding*2-2;
-    var halfPadding = doublePadding/2;
+    const {
+      enableSlideDragging,
+      style,
+      activeBackgroundColor,
+      inactiveBackgroundColor,
+      activeButtonPressedColor,
+      inactiveButtonPressedColor,
+      activeButtonColor,
+      inactiveButtonColor,
+      switchHeight,
+      switchWidth,
+      buttonRadius,
+      buttonShadow,
+      buttonContent,
+    } = this.props;
+    const {
+      pressed,
+      state,
+      position,
+    } = this.state;
 
-    let panHandlers = this.props.enableSlideDragging ? this._panResponder.panHandlers : null
-    let pressHandlers = !this.props.enableSlideDragging ? { onPress: () => this.toggle() } : null
+    const doublePadding = this.padding * 2 - 2;
+    const halfPadding = doublePadding / 2;
+
+    const panHandlers = enableSlideDragging ? this._panResponder.panHandlers : null;
+    const pressHandlers = !enableSlideDragging ? { onPress: () => this.toggle() } : null;
 
     return (
       <View
         {...panHandlers}
-        style={[{padding: this.padding, position: 'relative'}, this.props.style]}>
+        style={[{ padding: this.padding, position: 'relative' }, style]}
+      >
         <View
           style={{
-            backgroundColor: this.state.state ? this.props.activeBackgroundColor : this.props.inactiveBackgroundColor,
-            height: this.props.switchHeight,
-            width: this.props.switchWidth,
-            borderRadius: this.props.switchHeight/2,
-          }}/>
-        <TouchableHighlight {...pressHandlers} underlayColor='transparent' activeOpacity={1} style={{
-            height: Math.max(this.props.buttonRadius*2+doublePadding, this.props.switchHeight+doublePadding),
-            width: this.props.switchWidth+doublePadding,
+            backgroundColor: state ? activeBackgroundColor : inactiveBackgroundColor,
+            height: switchHeight,
+            width: switchWidth,
+            borderRadius: switchHeight / 2,
+          }}
+        />
+        <TouchableHighlight
+          {...pressHandlers}
+          underlayColor="transparent"
+          activeOpacity={1}
+          style={{
+            height: Math.max(buttonRadius * 2 + doublePadding, switchHeight + doublePadding),
+            width: switchWidth + doublePadding,
             position: 'absolute',
             top: 1,
-            left: 1
-          }}>
+            left: 1,
+          }}
+        >
           <Animated.View style={[{
-              backgroundColor:
+            backgroundColor:
                 this.state.state
-                  ? (this.state.pressed? this.props.activeButtonPressedColor : this.props.activeButtonColor)
-                  : (this.state.pressed? this.props.inactiveButtonPressedColor : this.props.inactiveButtonColor),
-              height: this.props.buttonRadius*2,
-              width: this.props.buttonRadius*2,
-              borderRadius: this.props.buttonRadius,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-              position: 'absolute',
-              top: halfPadding + this.props.switchHeight/2 - this.props.buttonRadius,
-              left: this.props.switchHeight/2 > this.props.buttonRadius ? halfPadding : halfPadding + this.props.switchHeight/2 - this.props.buttonRadius,
-              transform: [{ translateX: this.state.position }]
-            },
-            this.props.buttonShadow]}
+                  ? (pressed ? activeButtonPressedColor : activeButtonColor)
+                  : (pressed ? inactiveButtonPressedColor : inactiveButtonColor),
+            height: buttonRadius * 2,
+            width: buttonRadius * 2,
+            borderRadius: buttonRadius,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            position: 'absolute',
+            top: halfPadding + switchHeight / 2 - buttonRadius,
+            left: switchHeight / 2 > buttonRadius ? halfPadding : halfPadding + switchHeight / 2 - buttonRadius,
+            transform: [{ translateX: position }],
+          },
+          buttonShadow]}
           >
-            {this.props.buttonContent}
+            {buttonContent}
           </Animated.View>
         </TouchableHighlight>
       </View>
-    )
+    );
   }
-});
+}
 
-module.exports = MaterialSwitch;
+Switch.propTypes = {
+  active: PropTypes.bool,
+  style: ViewPropTypes.style,
+  inactiveButtonColor: PropTypes.string,
+  inactiveButtonPressedColor: PropTypes.string,
+  activeButtonColor: PropTypes.string,
+  activeButtonPressedColor: PropTypes.string,
+  buttonShadow: ViewPropTypes.style,
+  activeBackgroundColor: PropTypes.string,
+  inactiveBackgroundColor: PropTypes.string,
+  buttonRadius: PropTypes.number,
+  switchWidth: PropTypes.number,
+  switchHeight: PropTypes.number,
+  buttonContent: PropTypes.element,
+  buttonOffset: PropTypes.number,
+  enableSlide: PropTypes.bool,
+  enableSlideDragging: PropTypes.bool,
+  switchAnimationTime: PropTypes.number,
+  onActivate: PropTypes.func,
+  onDeactivate: PropTypes.func,
+  onChangeState: PropTypes.func,
+};
+
+Switch.defaultProps = {
+  active: false,
+  style: {},
+  inactiveButtonColor: '#2196F3',
+  inactiveButtonPressedColor: '#42A5F5',
+  activeButtonColor: '#FAFAFA',
+  activeButtonPressedColor: '#F5F5F5',
+  buttonShadow: {
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 1,
+    shadowOffset: { height: 1, width: 0 },
+  },
+  activeBackgroundColor: 'rgba(255,255,255,.5)',
+  inactiveBackgroundColor: 'rgba(0,0,0,.5)',
+  buttonRadius: 15,
+  switchWidth: 40,
+  switchHeight: 20,
+  buttonContent: null,
+  buttonOffset: 0,
+  enableSlide: true,
+  enableSlideDragging: true,
+  switchAnimationTime: 200,
+  onActivate() {},
+  onDeactivate() {},
+  onChangeState() {},
+};
